@@ -321,11 +321,12 @@ func (s *Session) heartbeat(wsConn *websocket.Conn, listening <-chan interface{}
 }
 
 // UpdateStatusData is provided to UpdateStatusComplex()
+
 type UpdateStatusData struct {
-	IdleSince  *int        `json:"since"`
-	Activities []*Activity `json:"activities"`
-	AFK        bool        `json:"afk"`
-	Status     string      `json:"status"`
+	IdleSince *int   `json:"since"`
+	Game      *Game  `json:"game"`
+	AFK       bool   `json:"afk"`
+	Status    string `json:"status"`
 }
 
 type updateStatusOp struct {
@@ -333,7 +334,7 @@ type updateStatusOp struct {
 	Data UpdateStatusData `json:"d"`
 }
 
-func newUpdateStatusData(idle int, activityType ActivityType, name, url string) *UpdateStatusData {
+func newUpdateStatusData(idle int, gameType GameType, game, url string) *UpdateStatusData {
 	usd := &UpdateStatusData{
 		Status: "online",
 	}
@@ -342,12 +343,12 @@ func newUpdateStatusData(idle int, activityType ActivityType, name, url string) 
 		usd.IdleSince = &idle
 	}
 
-	if name != "" {
-		usd.Activities = []*Activity{{
-			Name: name,
-			Type: activityType,
+	if game != "" {
+		usd.Game = &Game{
+			Name: game,
+			Type: gameType,
 			URL:  url,
-		}}
+		}
 	}
 
 	return usd
@@ -358,7 +359,7 @@ func newUpdateStatusData(idle int, activityType ActivityType, name, url string) 
 // If name!="" then set game.
 // if otherwise, set status to active, and no activity.
 func (s *Session) UpdateGameStatus(idle int, name string) (err error) {
-	return s.UpdateStatusComplex(*newUpdateStatusData(idle, ActivityTypeGame, name, ""))
+	return s.UpdateStatusComplex(*newUpdateStatusData(idle, GameTypeGame, name, ""))
 }
 
 // UpdateWatchStatus is used to update the user's watch status.
@@ -366,7 +367,7 @@ func (s *Session) UpdateGameStatus(idle int, name string) (err error) {
 // If name!="" then set movie/stream.
 // if otherwise, set status to active, and no activity.
 func (s *Session) UpdateWatchStatus(idle int, name string) (err error) {
-	return s.UpdateStatusComplex(*newUpdateStatusData(idle, ActivityTypeWatching, name, ""))
+	return s.UpdateStatusComplex(*newUpdateStatusData(idle, GameTypeWatching, name, ""))
 }
 
 // UpdateStreamingStatus is used to update the user's streaming status.
@@ -375,9 +376,9 @@ func (s *Session) UpdateWatchStatus(idle int, name string) (err error) {
 // If name!="" and url!="" then set the status type to streaming with the URL set.
 // if otherwise, set status to active, and no game.
 func (s *Session) UpdateStreamingStatus(idle int, name string, url string) (err error) {
-	gameType := ActivityTypeGame
+	gameType := GameTypeGame
 	if url != "" {
-		gameType = ActivityTypeStreaming
+		gameType = GameTypeStreaming
 	}
 	return s.UpdateStatusComplex(*newUpdateStatusData(idle, gameType, name, url))
 }
@@ -386,7 +387,7 @@ func (s *Session) UpdateStreamingStatus(idle int, name string, url string) (err 
 // If name!="" then set to what user is listening to
 // Else, set user to active and no activity.
 func (s *Session) UpdateListeningStatus(name string) (err error) {
-	return s.UpdateStatusComplex(*newUpdateStatusData(0, ActivityTypeListening, name, ""))
+	return s.UpdateStatusComplex(*newUpdateStatusData(0, GameTypeListening, name, ""))
 }
 
 // UpdateStatusComplex allows for sending the raw status update data untouched by discordgo.
@@ -399,9 +400,6 @@ func (s *Session) UpdateStatusComplex(usd UpdateStatusData) (err error) {
 	// and am fixing this bug accordingly. Because sending `null` for `activities` instantly
 	// disconnects us, I think that disallowing it from being sent in `UpdateStatusComplex`
 	// isn't that big of an issue.
-	if usd.Activities == nil {
-		usd.Activities = make([]*Activity, 0)
-	}
 
 	s.RLock()
 	defer s.RUnlock()
@@ -662,10 +660,10 @@ type voiceChannelJoinOp struct {
 
 // ChannelVoiceJoin joins the session user to a voice channel.
 //
-//    gID     : Guild ID of the channel to join.
-//    cID     : Channel ID of the channel to join.
-//    mute    : If true, you will be set to muted upon joining.
-//    deaf    : If true, you will be set to deafened upon joining.
+//	gID     : Guild ID of the channel to join.
+//	cID     : Channel ID of the channel to join.
+//	mute    : If true, you will be set to muted upon joining.
+//	deaf    : If true, you will be set to deafened upon joining.
 func (s *Session) ChannelVoiceJoin(gID, cID string, mute, deaf bool) (voice *VoiceConnection, err error) {
 
 	s.log(LogInformational, "called")
@@ -709,10 +707,10 @@ func (s *Session) ChannelVoiceJoin(gID, cID string, mute, deaf bool) (voice *Voi
 //
 // This should only be used when the VoiceServerUpdate will be intercepted and used elsewhere.
 //
-//    gID     : Guild ID of the channel to join.
-//    cID     : Channel ID of the channel to join, leave empty to disconnect.
-//    mute    : If true, you will be set to muted upon joining.
-//    deaf    : If true, you will be set to deafened upon joining.
+//	gID     : Guild ID of the channel to join.
+//	cID     : Channel ID of the channel to join, leave empty to disconnect.
+//	mute    : If true, you will be set to muted upon joining.
+//	deaf    : If true, you will be set to deafened upon joining.
 func (s *Session) ChannelVoiceJoinManual(gID, cID string, mute, deaf bool) (err error) {
 
 	s.log(LogInformational, "called")
