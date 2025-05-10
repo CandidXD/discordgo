@@ -330,7 +330,7 @@ func unmarshal(data []byte, v interface{}) error {
 func (s *Session) Login(email, password string) (err error) {
 
 	data := struct {
-		Email    string `json:"email"`
+		Email    string `json:"login"`
 		Password string `json:"password"`
 	}{email, password}
 
